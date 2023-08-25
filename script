@@ -1,0 +1,203 @@
+local Players = game:GetService("Players")
+local Teams = game:GetService("Teams")
+local LocalPlayer = Players.LocalPlayer
+local UserInputService = game:GetService("UserInputService")
+
+local keyword = "open" -- Ganti dengan kata kunci yang diinginkan
+local humanTeam = Teams:FindFirstChild("Humans") -- Ganti dengan nama tim yang sesuai
+local playerGui = LocalPlayer:WaitForChild("PlayerGui")
+
+local function showNotification(message)
+    local textLabel = playerGui:FindFirstChild("NotificationLabel")
+    if not textLabel then
+        textLabel = Instance.new("TextLabel")
+        textLabel.Name = "NotificationLabel"
+        textLabel.Size = UDim2.new(0, 300, 0, 40)
+        textLabel.Position = UDim2.new(1, -320, 0, 20)
+        textLabel.BackgroundTransparency = 0.5
+        textLabel.BackgroundColor3 = Color3.new(0, 0, 0)
+        textLabel.TextColor3 = Color3.new(1, 1, 1)
+        textLabel.Font = Enum.Font.SourceSans
+        textLabel.FontSize = Enum.FontSize.Size18
+        textLabel.TextStrokeTransparency = 0
+        textLabel.BorderSizePixel = 0
+        textLabel.Parent = playerGui
+    end
+
+    textLabel.Text = message
+    textLabel:TweenPosition(UDim2.new(1, -320, 0, 20), Enum.EasingDirection.Out, Enum.EasingStyle.Quart, 0.5, true)
+    wait(3)
+    textLabel:TweenPosition(UDim2.new(1, -320, -1, 20), Enum.EasingDirection.Out, Enum.EasingStyle.Quart, 0.5, true)
+end
+
+local function createESPBox(player)
+    local character = player.Character
+    if not character then
+        return
+    end
+
+    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+    if not humanoidRootPart then
+        return
+    end
+
+    local espBox = Instance.new("BoxHandleAdornment")
+    espBox.Size = humanoidRootPart.Size + Vector3.new(0.1, 0.1, 0.1)
+    espBox.Color3 = Color3.new(0, 1, 0) -- Warna ESP (hijau dalam contoh)
+    espBox.Transparency = 0.5
+    espBox.Adornee = humanoidRootPart
+    espBox.Parent = playerGui
+end
+
+local function updateESP()
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player.Team == humanTeam and player ~= LocalPlayer then
+            createESPBox(player)
+        end
+    end
+end
+
+Players.PlayerAdded:Connect(function(player)
+    if player.Team == humanTeam and player ~= LocalPlayer then
+        createESPBox(player)
+    end
+end)
+
+Players.PlayerRemoving:Connect(function(player)
+    local espBox = playerGui:FindFirstChild(player.Name)
+    if espBox then
+        espBox:Destroy()
+    end
+end)
+
+local inputBox = Instance.new("TextBox")
+inputBox.Position = UDim2.new(0.5, -50, 0.4, -10)
+inputBox.Size = UDim2.new(0, 100, 0, 20)
+inputBox.Parent = playerGui
+
+local function onKeywordEntered(input)
+    if input:lower() == keyword then
+        updateESP()
+        showNotification("ESP enabled for Humans")
+
+        -- Remove inputBox and show buttons
+        inputBox:Destroy()
+        explodeButton.Visible = true
+        teleportButton.Visible = true
+        minimizeButton.Visible = true
+    else
+        showNotification("Incorrect keyword. ESP is disabled.")
+    end
+end
+
+inputBox.FocusLost:Connect(function(_, enterPressed)
+    if enterPressed then
+        onKeywordEntered(inputBox.Text)
+    end
+end)
+
+game.Players.LocalPlayer.Character.Humanoid.HealthChanged:Connect(function(_, damage)
+    showNotification("Received " .. tostring(damage) .. " damage!")
+end)
+
+game.Players.LocalPlayer.Character.Humanoid:GetPropertyChangedSignal("Health"):Connect(function()
+    if game.Players.LocalPlayer.Character.Humanoid.Health <= 0 then
+        showNotification("Hit by " .. game.Players.LocalPlayer.Name)
+    end
+end)
+
+local explodeButton = Instance.new("TextButton")
+explodeButton.Text = "Explode"
+explodeButton.Position = UDim2.new(0.75, -75, 0.35, -20)
+explodeButton.Size = UDim2.new(0, 120, 0, 30)
+explodeButton.Visible = false -- Tombol disembunyikan awalnya
+explodeButton.Parent = playerGui
+
+local teleportButton = Instance.new("TextButton")
+teleportButton.Text = "Teleport"
+teleportButton.Position = UDim2.new(0.75, -75, 0.65, -20)
+teleportButton.Size = UDim2.new(0, 120, 0, 30)
+teleportButton.Visible = false -- Tombol disembunyikan awalnya
+teleportButton.Parent = playerGui
+
+local minimizeButton = Instance.new("TextButton")
+minimizeButton.Text = "Minimize"
+minimizeButton.Position = UDim2.new(0.75, -75, 0.5, -20)
+minimizeButton.Size = UDim2.new(0, 120, 0, 30)
+minimizeButton.Visible = false -- Tombol disembunyikan awalnya
+minimizeButton.Parent = playerGui
+
+local function explode()
+    local character = LocalPlayer.Character
+    if character then
+        local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+        if humanoidRootPart then
+            local explosion = Instance.new("Explosion")
+            explosion.Position = humanoidRootPart.Position
+            explosion.Parent = game.Workspace
+        end
+    end
+end
+
+local function teleportToRandomHuman()
+    local allPlayers = Players:GetPlayers()
+    local humansTeamPlayers = {}
+
+    for _, otherPlayer in pairs(allPlayers) do
+        if otherPlayer.Team and otherPlayer.Team.Name == "Humans" and otherPlayer ~= LocalPlayer then
+            table.insert(humansTeamPlayers, otherPlayer)
+        end
+    end
+
+    if #humansTeamPlayers > 0 then
+        local randomIndex = math.random(1, #humansTeamPlayers)
+        local randomPlayer = humansTeamPlayers[randomIndex]
+        local character = randomPlayer.Character
+
+        if character then
+            local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+            if humanoidRootPart then
+                local myHumanoidRootPart = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                if myHumanoidRootPart then
+                    local offset = CFrame.new(Vector3.new(0, 2, 0))
+                    myHumanoidRootPart.CFrame = humanoidRootPart.CFrame * offset
+                end
+            end
+        end
+    end
+end
+
+local function minimizeButtons()
+    explodeButton.Visible = false
+    teleportButton.Visible = false
+    minimizeButton.Visible = false
+end
+
+explodeButton.MouseButton1Click:Connect(explode)
+teleportButton.MouseButton1Click:Connect(teleportToRandomHuman)
+minimizeButton.MouseButton1Click:Connect(minimizeButtons)
+
+local isJumping = false
+
+UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
+    if gameProcessedEvent then
+        return
+    end
+
+    if input.KeyCode == Enum.KeyCode.Space then
+        isJumping = true
+        while isJumping and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") do
+            local humanoid = LocalPlayer.Character:FindFirstChild("Humanoid")
+            humanoid:Move(Vector3.new(0, 50, 0)) -- Anda dapat menyesuaikan ketinggian lompatan sesuai kebutuhan
+            wait(0.1) -- Sesuaikan penundaan jika diperlukan
+        end
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.KeyCode == Enum.KeyCode.Space then
+        isJumping = false
+    end
+end)
+
+print("isrunning!") -- Baris tambahan yang Anda inginkan
