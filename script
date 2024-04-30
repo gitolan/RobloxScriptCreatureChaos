@@ -6,6 +6,7 @@ local UserInputService = game:GetService("UserInputService")
 local keyword = "open" -- Ganti dengan kata kunci yang diinginkan
 local humanTeam = Teams:FindFirstChild("Humans") -- Ganti dengan nama tim yang sesuai
 local playerGui = LocalPlayer:WaitForChild("PlayerGui")
+-- add resetondpawn false
 
 local function showNotification(message)
     local textLabel = playerGui:FindFirstChild("NotificationLabel")
